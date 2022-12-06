@@ -33,9 +33,8 @@ def delete_db_records(dataset_name, df, client):
 ## TODO::update queries to use project_id parameter instead of hardcoding
 def build_batches(client, dataset_name, batch_size=100, num_batches=10):
     ''' randomly sample passages for QG
-    :param is_colab: boolean denoting execution env
+    :param client: google BigQuery client connection object
     :param dataset_name: database.table_name of target table containing the passage records
-    :param client: google BigQuery client conection object
     :param batch_size: number of records to query
     :param num_batches: number of batches to run
     :return: list of df batches
@@ -56,8 +55,16 @@ def build_batches(client, dataset_name, batch_size=100, num_batches=10):
     df_split = np.array_split(df, num_batches)
     return df_split
 
-
 def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl):
+    ''' processes a batch of records for question generation and adds them back to database
+    :param isColab: boolean denoting execution env
+    :param project_id: google project id
+    :param qg: question generator model object
+    :param num_questions: number of questions to generate for each passage
+    :param target_table: name of the target table to append records (database.table_name)
+    :param lookup_tbl: name of lookup table to delete records (database.table_name)
+    :return: None
+    '''
     client = connect_bigquery(isColab, project_id)
     df_split = build_batches(batch_size=100, num_batches=10, dataset_name=lookup_tbl, client=client)
     ## iterate over mini-batches
@@ -72,7 +79,5 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
             df_.at[index, "questions"] = questions
 
         print("saving mini-batch results to db...")
-        # df_.to_gbq('staging.wikipedia_documents_1_qg_15',
         df_.to_gbq(target_table, project_id, chunksize=None, if_exists='append')
-        print("deleting records from lookup table..")
         delete_db_records(lookup_tbl, df_, client)

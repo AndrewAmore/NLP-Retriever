@@ -2,3 +2,4 @@
 .idea
 data/
 question_generator/
+process_data.py

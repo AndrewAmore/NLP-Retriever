@@ -14,7 +14,6 @@ project_id = 'calcium-vial-368801'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-
 ## query data only focused on NQ-train
 def fetch_data_fromBQ(lower_bnd, upper_bnd):
   df = client.query(''' select distinct A.query_id, doc_text, title, doc_id from (
