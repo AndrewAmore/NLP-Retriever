@@ -1,0 +1,4 @@
+*.parquet
+.idea
+data/
+question_generator/
