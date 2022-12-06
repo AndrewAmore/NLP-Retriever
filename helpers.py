@@ -70,8 +70,9 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
     client = connect_bigquery(isColab, project_id)
     df_split = build_batches(batch_size=batch_size, num_batches=num_batches, dataset_name=lookup_tbl, client=client)
     ## iterate over mini-batches
-    for df_ in tqdm(df_split, total=len(df_split), desc="Overall Batch Progress"):
-        for index, row in tqdm(df_.iterrows(), total=len(df_.index), desc="Mini-Batch Progress"):
+    for df_ in tqdm(df_split, total=len(df_split), desc="Overall Batch Progress", position=0, leave=True):
+        for index, row in tqdm(df_.iterrows(), total=len(df_.index), desc="Mini-Batch Progress",
+                               position=0, leave=True):
             article = df_.at[index, "text"]
             qa_list = qg.generate(article, num_questions=num_questions)
             questions = [q['question'].replace('?', ' ') for q in qa_list]
