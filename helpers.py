@@ -23,7 +23,7 @@ def delete_db_records(dataset_name, df, client):
     :param client: bigquery connection obj
     :return: None
     '''
-    # print("deleting records from staging db...")
+    print("deleting records from staging db...")
     client.query('''
             DELETE FROM
             `calcium-vial-368801.%s` A
