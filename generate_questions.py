@@ -28,7 +28,7 @@ qg = QuestionGenerator()
 ## batch process
 # batches = [[100, 110], [110, 150]]
 # batches = [[150, 300], [300, 500], [500, 1000], [1000, 2000], [2000, 3000], [3000,4000], [4000,5000]]
-batches = [[3000,4000], [4000,5000]]
+batches = [[4000,5000]]
 for i in batches:
   print("batch: ", i)
   df = fetch_data_fromBQ(i[0], i[1])

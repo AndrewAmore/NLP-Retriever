@@ -1,7 +1,6 @@
-## holds helper functions for project
-
 import numpy as np
 import google.cloud.bigquery as bq
+from tqdm import tqdm
 
 def connect_bigquery(isColab, project_id):
     '''
@@ -31,7 +30,7 @@ def delete_db_records(dataset_name, df, client):
             ''' % (dataset_name, df.doc_id.values.tolist(), df.text.tolist()))
 
 ## TODO::update queries to use project_id parameter instead of hardcoding
-def build_batches(client, dataset_name, batch_size=100, num_batches=10):
+def build_batches(client, dataset_name, batch_size, num_batches):
     ''' randomly sample passages for QG
     :param client: google BigQuery client connection object
     :param dataset_name: database.table_name of target table containing the passage records
@@ -55,7 +54,8 @@ def build_batches(client, dataset_name, batch_size=100, num_batches=10):
     df_split = np.array_split(df, num_batches)
     return df_split
 
-def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl):
+def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl,
+                    num_batches=100, batch_size=10):
     ''' processes a batch of records for question generation and adds them back to database
     :param isColab: boolean denoting execution env
     :param project_id: google project id
@@ -63,21 +63,20 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
     :param num_questions: number of questions to generate for each passage
     :param target_table: name of the target table to append records (database.table_name)
     :param lookup_tbl: name of lookup table to delete records (database.table_name)
+    :param num_batches: number of batches to process
+    :param batch_size: size of each batch
     :return: None
     '''
     client = connect_bigquery(isColab, project_id)
-    df_split = build_batches(batch_size=100, num_batches=10, dataset_name=lookup_tbl, client=client)
+    df_split = build_batches(batch_size=batch_size, num_batches=num_batches, dataset_name=lookup_tbl, client=client)
     ## iterate over mini-batches
-    for df_ in df_split:
-        # generate questions
-        for index, row in df_.iterrows():
-            print(index)
+    for df_ in tqdm(df_split, total=len(df_split), desc="Overall Batch Progress"):
+        for index, row in tqdm(df_.iterrows(), total=len(df_.index), desc="Mini-Batch Progress"):
             article = df_.at[index, "text"]
             qa_list = qg.generate(article, num_questions=num_questions)
             questions = [q['question'].replace('?', ' ') for q in qa_list]
             questions = ''.join(questions)
             df_.at[index, "questions"] = questions
-
         print("saving mini-batch results to db...")
         df_.to_gbq(target_table, project_id, chunksize=None, if_exists='append')
         delete_db_records(lookup_tbl, df_, client)

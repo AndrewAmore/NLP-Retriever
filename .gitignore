@@ -1,5 +1,6 @@
 *.parquet
 .idea
 data/
-question_generator/
+question_generator_original/
 process_data.py
+__pycache__/
