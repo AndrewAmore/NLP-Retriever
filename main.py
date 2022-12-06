@@ -1,17 +1,3 @@
-from datasets import load_dataset
-import datasets
-
-## this is the simplified format, but is missing the tokenization
-# dataset = load_dataset("json", data_files="/home/nimbus/Documents/NLP/data/NQ/v1.0-simplified_simplified-nq-train.jsonl/simplified-nq-train.jsonl")
-
-## load a training sample from original format
-# dataset_tr = load_dataset("json", data_files="/home/nimbus/Documents/NLP/data/v1.0/train/train_00_n_1500.jsonl")
-
-# to access one sample entry (a dictionary)
-# dataset['train'][0].keys()
-
-
-## try the parquest conversion
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
