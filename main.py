@@ -16,8 +16,13 @@ if __name__ == '__main__':
         helpers.process_batches(isColab=False, project_id=project_id, qg=qg, num_questions=15,
                         target_table="staging.wikipedia_documents_1_qg_15",
                         lookup_tbl="staging.stg_wikipedia_1_batch_loading",
-                        num_batches=2, batch_size=5)
+                        num_batches=3, batch_size=5)
     elif args.record_obj == "NQ":
         # process NQ
         print("processing NQ data")
+        helpers.process_batches(isColab=False, project_id=project_id, qg=qg, num_questions=50,
+                        target_table="staging.wikipedia_documents_1_qg_15",
+                        lookup_tbl="staging.stg_wikipedia_1_batch_loading",
+                        num_batches=5, batch_size=25)
+
 
