@@ -28,7 +28,7 @@ def delete_db_records(dataset_name, df, client):
             DELETE FROM
             `calcium-vial-368801.%s` A
             WHERE doc_id in unnest(%s) and text in unnest(%s)
-            ''' % (dataset_name, df.doc_id.values.tolist(), df.text.tolist()))
+            ''' % (dataset_name, df.doc_id.tolist(), df.text.tolist()))
 
 ## TODO::update queries to use project_id parameter instead of hardcoding
 def build_batches(client, dataset_name, batch_size, num_batches):
@@ -57,7 +57,7 @@ def build_batches(client, dataset_name, batch_size, num_batches):
     return df_split
 
 def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl,
-                    num_batches=100, batch_size=10):
+                    num_batches, batch_size):
     ''' processes a batch of records for question generation and adds them back to database
     :param isColab: boolean denoting execution env
     :param project_id: google project id
