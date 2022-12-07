@@ -57,7 +57,7 @@ def build_batches(client, dataset_name, batch_size, num_batches):
     return df_split
 
 def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl,
-                    num_batches, batch_size):
+                    num_batches, batch_size, use_qa_evaluator=True):
     ''' processes a batch of records for question generation and adds them back to database
     :param isColab: boolean denoting execution env
     :param project_id: google project id
@@ -76,7 +76,7 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
     for df_ in tqdm(df_split, total=len(df_split), desc="Overall Batch Progress", position=0, leave=True):
         for index, row in tqdm(df_.iterrows(), total=len(df_.index), desc=f"Mini-Batch Prog (Batch = {cnter})", leave=False):
             article = df_.at[index, "text"]
-            qa_list = qg.generate(article, num_questions=num_questions)
+            qa_list = qg.generate(article, num_questions=num_questions, use_evaluator=use_qa_evaluator)
             questions = [q['question'].replace('?', ' ') for q in qa_list]
             questions = ''.join(questions)
             df_.at[index, "questions"] = questions
