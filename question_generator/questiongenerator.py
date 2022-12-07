@@ -4,11 +4,7 @@ import numpy as np
 import random
 import re
 import torch
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
-    AutoModelForSequenceClassification,
-)
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSequenceClassification
 from typing import Any, List, Mapping, Tuple
 
 
@@ -35,18 +31,22 @@ class QuestionGenerator:
         self.qg_model.eval()
         self.qa_evaluator = QAEvaluator()
 
+    ## TODO::have to change this to be batched
+    ### right now all possible questions are generated...can alter the GeneratorConfig to output a smaller set to improve runtime
     def generate(self, article: str, use_evaluator: bool = True, num_questions: bool = None, answer_style: str = "all") -> List:
         """Takes an article and generates a set of question and answer pairs. If use_evaluator
         is True then QA pairs will be ranked and filtered based on their quality. answer_style
-        should selected from ["all", "sentences", "multiple_choice"].
+        should select from ["all", "sentences", "multiple_choice"].
         """
         # print("Generating questions...\n")
+        ## TODO::this will need to be batched
         qg_inputs, qg_answers = self.generate_qg_inputs(article, answer_style)
         generated_questions = self.generate_questions_from_inputs(qg_inputs)
 
         message = "{} questions doesn't match {} answers".format(len(generated_questions), len(qg_answers))
         assert len(generated_questions) == len(qg_answers), message
 
+        ## the evaluator is what shrinks the question count down...
         if use_evaluator:
             # print("Evaluating QA pairs...\n")
             encoded_qa_pairs = self.qa_evaluator.encode_qa_pairs(generated_questions, qg_answers)
@@ -58,9 +58,9 @@ class QuestionGenerator:
         else:
             # print("Skipping evaluation step.\n")
             qa_list = self._get_all_qa_pairs(generated_questions, qg_answers)
-
         return qa_list
 
+    ## TODO::will need to be batched
     def generate_qg_inputs(self, text: str, answer_style: str) -> Tuple[List[str], List[str]]:
         """Given a text, returns a list of model inputs and a list of corresponding answers.
         Model inputs take the form "answer_token <answer text> context_token <context text>" where
@@ -87,9 +87,8 @@ class QuestionGenerator:
         return inputs, answers
 
     def generate_questions_from_inputs(self, qg_inputs: List) -> List[str]:
-        """Given a list of concatenated answers and contexts, with the form:
-        "answer_token <answer text> context_token <context text>", generates a list of 
-        questions.
+        """Given a list of concatenated answers and contexts generates a list of questions with the form:
+        "answer_token <answer text> context_token <context text>".
         """
         generated_questions = []
         for qg_input in qg_inputs:
@@ -102,15 +101,12 @@ class QuestionGenerator:
         MAX_SENTENCE_LEN = 128
         sentences = re.findall(".*?[.!\?]", text)
         cut_sentences = []
-
         for sentence in sentences:
             if len(sentence) > MAX_SENTENCE_LEN:
                 cut_sentences.extend(re.split("[,;:)]", sentence))
-
         # remove useless post-quote sentence fragments
         cut_sentences = [s for s in sentences if len(s.split(" ")) > 5]
         sentences = sentences + cut_sentences
-
         return list(set([s.strip(" ") for s in sentences]))
 
     def _split_into_segments(self, text: str) -> List[str]:
@@ -123,15 +119,12 @@ class QuestionGenerator:
             self.qg_tokenizer(p)["input_ids"] for p in paragraphs if len(p) > 0
         ]
         segments = []
-
         while len(tokenized_paragraphs) > 0:
             segment = []
-
             while len(segment) < MAX_TOKENS and len(tokenized_paragraphs) > 0:
                 paragraph = tokenized_paragraphs.pop(0)
                 segment.extend(paragraph)
             segments.append(segment)
-
         return [self.qg_tokenizer.decode(s, skip_special_tokens=True) for s in segments]
 
     def _prepare_qg_inputs(self, sentences: List[str], text: str) -> Tuple[List[str], List[str]]:
@@ -197,12 +190,9 @@ class QuestionGenerator:
             choices.extend(random.sample(pool, num_choices - len(choices)))
         else:
             choices = random.sample(matches, num_choices)
-
         choices = [json.loads(s) for s in choices]
-
         for choice in choices:
             final_choices.append({"answer": choice["text"], "correct": False})
-
         random.shuffle(final_choices)
         return final_choices
 
@@ -212,12 +202,10 @@ class QuestionGenerator:
         a question sentence. The generated question is decoded and then returned.
         """
         encoded_input = self._encode_qg_input(qg_input)
-        ## THIS CONTROLS THE QUESTION LENGTH
-        output = self.qg_model.generate(input_ids=encoded_input["input_ids"], max_length=20)
-        question = self.qg_tokenizer.decode(
-            output[0],
-            skip_special_tokens=True
-        )
+        # output_greedy = self.qg_model.generate(input_ids=encoded_input["input_ids"], max_length=20)
+        ## changed from greedy to beam and added Temperature to avoid repetive question outputs
+        output = self.qg_model.generate(input_ids=encoded_input["input_ids"], max_length=20, num_beams=4, temperature=2)
+        question = self.qg_tokenizer.decode(output[0], skip_special_tokens=True)
         return question
 
     def _encode_qg_input(self, qg_input: str) -> torch.tensor:
@@ -238,13 +226,8 @@ class QuestionGenerator:
         """
         if num_questions > len(scores):
             num_questions = len(scores)
-            # print((
-            #     f"\nWas only able to generate {num_questions} questions.",
-            #     "For more questions, please input a longer text.")
-            # )
-
+            # print((f"\nWas only able to generate {num_questions} questions.", "For more questions, please input a longer text."))
         qa_list = []
-
         for i in range(num_questions):
             index = scores[i]
             qa = {
@@ -252,20 +235,17 @@ class QuestionGenerator:
                 "answer": qg_answers[index]
             }
             qa_list.append(qa)
-
         return qa_list
 
     def _get_all_qa_pairs(self, generated_questions: List[str], qg_answers: List[str]):
         """Formats question and answer pairs without ranking or filtering."""
         qa_list = []
-
         for question, answer in zip(generated_questions, qg_answers):
             qa = {
                 "question": question.split("?")[0] + "?",
                 "answer": answer
             }
             qa_list.append(qa)
-
         return qa_list
 
 
@@ -328,7 +308,6 @@ class QAEvaluator:
         """Takes an encoded QA pair and returns a score."""
         output = self.qae_model(**encoded_qa_pair)
         return output[0][0][1]
-
 
 def print_qa(qa_list: List[Mapping[str, str]], show_answers: bool = True) -> None:
     """Formats and prints a list of generated questions and answers."""

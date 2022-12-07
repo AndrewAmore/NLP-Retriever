@@ -2,6 +2,7 @@ import numpy as np
 import google.cloud.bigquery as bq
 from tqdm import tqdm
 import time
+import os
 
 def connect_bigquery(isColab, project_id):
     '''
@@ -13,7 +14,11 @@ def connect_bigquery(isColab, project_id):
     if isColab:
         client = bq.Client(project=project_id)
     else:
-        client = bq.Client.from_service_account_json("/home/nimbus/Downloads/calcium-vial-368801-989160cca376.json")
+        if os.name == "nt":
+            client = bq.Client.from_service_account_json(
+                "C:\\Users\Andrew Amore\Downloads\calcium-vial-368801-989160cca376.json")
+        else:
+            client = bq.Client.from_service_account_json("/home/nimbus/Downloads/calcium-vial-368801-989160cca376.json")
     return client
 
 def delete_db_records(dataset_name, df, client):
@@ -57,7 +62,7 @@ def build_batches(client, dataset_name, batch_size, num_batches):
     return df_split
 
 def process_batches(isColab, project_id, qg, num_questions, target_table, lookup_tbl,
-                    num_batches, batch_size, use_qa_evaluator=True):
+                    num_batches, batch_size, use_qa_evaluator=True, doDelete=True):
     ''' processes a batch of records for question generation and adds them back to database
     :param isColab: boolean denoting execution env
     :param project_id: google project id
@@ -67,6 +72,8 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
     :param lookup_tbl: name of lookup table to delete records (database.table_name)
     :param num_batches: number of batches to process
     :param batch_size: size of each batch
+    :param use_qa_evaluator: boolean denoting whether 2nd stage evaluation should take place
+    :param doDelete: boolean denoting whether records should be deleted from the lookup_tbl
     :return: None
     '''
     client = connect_bigquery(isColab, project_id)
@@ -82,5 +89,6 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
             df_.at[index, "questions"] = questions
         # print("saving mini-batch results to db...")
         df_.to_gbq(target_table, project_id, chunksize=None, if_exists='append')
-        delete_db_records(lookup_tbl, df_, client)
+        if doDelete:
+            delete_db_records(lookup_tbl, df_, client)
         cnter += 1
