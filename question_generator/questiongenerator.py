@@ -25,7 +25,8 @@ class QuestionGenerator:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         ## fast vs. slow won't make a difference if doing one passage at a time
-        self.qg_tokenizer = AutoTokenizer.from_pretrained(QG_PRETRAINED, use_fast=False)
+            ## won't work with default protobuf package (pip install protobuf==3.20.*) fixes issues
+        self.qg_tokenizer = AutoTokenizer.from_pretrained(QG_PRETRAINED, use_fast=True)
         self.qg_model = AutoModelForSeq2SeqLM.from_pretrained(QG_PRETRAINED)
         self.qg_model.to(self.device)
         self.qg_model.eval()

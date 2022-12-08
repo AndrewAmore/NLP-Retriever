@@ -1,8 +1,7 @@
 import numpy as np
 import google.cloud.bigquery as bq
 from tqdm import tqdm
-import time
-import os
+import time, os
 
 def connect_bigquery(isColab, project_id):
     '''
