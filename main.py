@@ -30,7 +30,8 @@ if __name__ == '__main__':
         helpers.process_batches(isColab=False, project_id=project_id, qg=qg, num_questions=25,
                         target_table="testing.nq_train_documents_3_qg_25_beam",
                         lookup_tbl="testing.stg_nq_train_3_batch_loading",
-                        num_batches=1, batch_size=3, use_qa_evaluator=True, doDelete=False)
+                        num_batches=1, batch_size=5,
+                        use_qa_evaluator=True, doDelete=False)
 
 
 

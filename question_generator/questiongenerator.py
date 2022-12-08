@@ -33,19 +33,20 @@ class QuestionGenerator:
 
     ## TODO::have to change this to be batched
     ### right now all possible questions are generated...can alter the GeneratorConfig to output a smaller set to improve runtime
-    def generate(self, article: str, use_evaluator: bool = True, num_questions: bool = None, answer_style: str = "all") -> List:
+    def generate(self, isColab: bool,  article: str, use_evaluator: bool = True, num_questions: bool = None, answer_style: str = "all") -> List:
         """Takes an article and generates a set of question and answer pairs. If use_evaluator
         is True then QA pairs will be ranked and filtered based on their quality. answer_style
         should select from ["all", "sentences", "multiple_choice"].
         """
         # print("Generating questions...\n")
-        ## TODO::this will need to be batched
+        ## TODO::can't batch across inputs as we can't even get one example through
         qg_inputs, qg_answers = self.generate_qg_inputs(article, answer_style)
-        generated_questions = self.generate_questions_from_inputs(qg_inputs)
+        ## new with batching
+        generated_questions = self.generate_questions_from_inputs_BATCH(qg_inputs, isColab)
+        # generated_questions = self.generate_questions_from_inputs(qg_inputs)
 
         message = "{} questions doesn't match {} answers".format(len(generated_questions), len(qg_answers))
         assert len(generated_questions) == len(qg_answers), message
-
         ## the evaluator is what shrinks the question count down...
         if use_evaluator:
             # print("Evaluating QA pairs...\n")
@@ -60,7 +61,7 @@ class QuestionGenerator:
             qa_list = self._get_all_qa_pairs(generated_questions, qg_answers)
         return qa_list
 
-    ## TODO::will need to be batched
+    ## TODO::will need to be batched (first task)
     def generate_qg_inputs(self, text: str, answer_style: str) -> Tuple[List[str], List[str]]:
         """Given a text, returns a list of model inputs and a list of corresponding answers.
         Model inputs take the form "answer_token <answer text> context_token <context text>" where
@@ -95,6 +96,52 @@ class QuestionGenerator:
             question = self._generate_question(qg_input)
             generated_questions.append(question)
         return generated_questions
+
+################## new batching code ###############################
+    def chunks(self, lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+    def generate_questions_from_inputs_BATCH(self, qg_inputs: List, isColab: bool) -> List[str]:
+        """Given a list of concatenated answers and contexts generates a list of questions with the form:
+        "answer_token <answer text> context_token <context text>".
+        """
+        # this fills up GPU memory locally with just 8 chunks...set as hyperparemter based on env as Colab has 12 GB
+        chunk_number = 7
+        if isColab:
+            chunk_number = 21
+        generated_questions = []
+        ## split the qg_inputs into mini-batches
+        chunked = list(self.chunks(qg_inputs, chunk_number))
+        for chunk in chunked:
+            questions = self._generate_question_BATCH(chunk)
+            generated_questions.extend(q for q in questions)
+        return generated_questions
+
+    @torch.no_grad()
+    def _generate_question_BATCH(self, qg_input: list) -> str:
+        """Takes qg_input which is the concatenated answer and context, and uses it to generate
+        a question sentence. The generated question is decoded and then returned.
+        """
+        encoded_input = self._encode_qg_input_BATCH(qg_input)
+        output = self.qg_model.generate(input_ids=encoded_input["input_ids"], max_length=20, num_beams=4, temperature=2)
+        questions = self.qg_tokenizer.batch_decode(output, skip_special_tokens=True)
+        return questions
+
+    def _encode_qg_input_BATCH(self, qg_input: list) -> torch.tensor:
+        """Tokenizes a string and returns a tensor of input ids corresponding to indices of tokens in the vocab.
+        """
+        return self.qg_tokenizer(
+            qg_input,
+            padding='max_length',
+            max_length=self.SEQ_LENGTH,
+            truncation=True,
+            return_tensors="pt",
+        ).to(self.device)
+
+##################
+
 
     def _split_text(self, text: str) -> List[str]:
         """Splits the text into sentences, and attempts to split or truncate long sentences."""
@@ -209,8 +256,7 @@ class QuestionGenerator:
         return question
 
     def _encode_qg_input(self, qg_input: str) -> torch.tensor:
-        """Tokenizes a string and returns a tensor of input ids corresponding to indices of tokens in 
-        the vocab.
+        """Tokenizes a string and returns a tensor of input ids corresponding to indices of tokens in the vocab.
         """
         return self.qg_tokenizer(
             qg_input,
