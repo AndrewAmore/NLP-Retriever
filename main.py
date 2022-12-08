@@ -6,6 +6,8 @@ import helpers
 project_id = 'calcium-vial-368801'
 qg = QuestionGenerator()
 isColab = 'google.colab' in sys.modules
+# defines the number of passages concatenated together
+concat_level = 3
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process Data", usage='%(prog)s [options]')

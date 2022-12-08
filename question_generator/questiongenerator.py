@@ -6,6 +6,7 @@ import re
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSequenceClassification
 from typing import Any, List, Mapping, Tuple
+import question_generator.sentence_splitter as sentence_splitter
 
 
 class QuestionGenerator:
@@ -97,7 +98,7 @@ class QuestionGenerator:
             generated_questions.append(question)
         return generated_questions
 
-################## new batching code ##################
+################## NEW FUNCTION CODE ##################
     def chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
@@ -138,11 +139,13 @@ class QuestionGenerator:
 
 ################## END NEW FUNCTIONS ##################
 
-    ## currently looking characters to split sentence...lots of passages have abbreviations Jim H. Smith for example
     def _split_text(self, text: str) -> List[str]:
         """Splits the text into sentences, and attempts to split or truncate long sentences."""
         MAX_SENTENCE_LEN = 128
-        sentences = re.findall(".*?[.!\?]", text)
+        ## add additional check to verify abbreviations...sentence can't end with a single letter (i.e. 'John S.')
+        ## also add some additional parsing to remover citations that are in the form [digit]
+        # sentences = re.findall(".*?[.!\?]", text)
+        sentences = sentence_splitter.split_into_sentences(text)
         cut_sentences = []
         for sentence in sentences:
             if len(sentence) > MAX_SENTENCE_LEN:
@@ -271,7 +274,7 @@ class QuestionGenerator:
         for i in range(num_questions):
             index = scores[i]
             qa = {
-                "question": generated_questions[index].split("?")[0] + "?",
+                "question": generated_questions[index].split("?")[0] + " [SEP] ",
                 "answer": qg_answers[index]
             }
             qa_list.append(qa)
@@ -282,7 +285,7 @@ class QuestionGenerator:
         qa_list = []
         for question, answer in zip(generated_questions, qg_answers):
             qa = {
-                "question": question.split("?")[0] + "?",
+                "question": question.split("?")[0] + " [SEP] ",
                 "answer": answer
             }
             qa_list.append(qa)

@@ -84,7 +84,7 @@ def process_batches(isColab, project_id, qg, num_questions, target_table, lookup
         for index, row in tqdm(df_.iterrows(), total=len(df_.index), desc=f"Mini-Batch Prog (Batch = {cnter})", leave=False):
             article = df_.at[index, "text"]
             qa_list = qg.generate(isColab, article, num_questions=num_questions, use_evaluator=use_qa_evaluator)
-            questions = [q['question'].replace('?', ' ') for q in qa_list]
+            questions = [q['question'] for q in qa_list]
             questions = ''.join(questions)
             df_.at[index, "questions"] = questions
         df_.to_gbq(target_table, project_id, chunksize=None, if_exists='append')
