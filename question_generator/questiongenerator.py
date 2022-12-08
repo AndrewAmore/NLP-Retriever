@@ -109,12 +109,12 @@ class QuestionGenerator:
         "answer_token <answer text> context_token <context text>".
         """
         # this fills up GPU memory locally with just 8 chunks...set as hyperparemter based on env as Colab has 12 GB
-        chunk_number = 7
+        obs_per_chunk = 7
         if isColab:
-            chunk_number = 21
+            obs_per_chunk = 33
         generated_questions = []
         ## split the qg_inputs into mini-batches
-        chunked = list(self.chunks(qg_inputs, chunk_number))
+        chunked = list(self.chunks(qg_inputs, obs_per_chunk))
         for chunk in chunked:
             questions = self._generate_question_BATCH(chunk)
             generated_questions.extend(q for q in questions)
@@ -133,13 +133,8 @@ class QuestionGenerator:
     def _encode_qg_input_BATCH(self, qg_input: list) -> torch.tensor:
         """Tokenizes a string and returns a tensor of input ids corresponding to indices of tokens in the vocab.
         """
-        return self.qg_tokenizer(
-            qg_input,
-            padding='max_length',
-            max_length=self.SEQ_LENGTH,
-            truncation=True,
-            return_tensors="pt",
-        ).to(self.device)
+        return self.qg_tokenizer(qg_input, padding='max_length', max_length=self.SEQ_LENGTH, truncation=True,
+            return_tensors="pt").to(self.device)
 
 ##################
 
@@ -264,7 +259,7 @@ class QuestionGenerator:
             padding='max_length',
             max_length=self.SEQ_LENGTH,
             truncation=True,
-            return_tensors="pt",
+            return_tensors="pt"
         ).to(self.device)
 
     def _get_ranked_qa_pairs(self, generated_questions: List[str],
