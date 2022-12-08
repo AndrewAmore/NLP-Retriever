@@ -45,7 +45,6 @@ class QuestionGenerator:
         ## new with batching
         generated_questions = self.generate_questions_from_inputs_BATCH(qg_inputs, isColab)
         # generated_questions = self.generate_questions_from_inputs(qg_inputs)
-
         message = "{} questions doesn't match {} answers".format(len(generated_questions), len(qg_answers))
         assert len(generated_questions) == len(qg_answers), message
         ## the evaluator is what shrinks the question count down...
@@ -111,7 +110,7 @@ class QuestionGenerator:
         # this fills up GPU memory locally with just 8 chunks...set as hyperparemter based on env as Colab has 12 GB
         obs_per_chunk = 7
         if isColab:
-            obs_per_chunk = 33
+            obs_per_chunk = 36
         generated_questions = []
         ## split the qg_inputs into mini-batches
         chunked = list(self.chunks(qg_inputs, obs_per_chunk))
@@ -222,10 +221,8 @@ class QuestionGenerator:
             json.dumps({"text": correct_answer.text,
                        "label_": correct_answer.label_})
         )
-
         # find answers with the same NER label
         matches = [e for e in pool if correct_label in e]
-
         # if we don't have enough then add some other random answers
         if len(matches) < num_choices:
             choices = matches
