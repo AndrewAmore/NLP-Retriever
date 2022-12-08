@@ -41,17 +41,18 @@ class QuestionGenerator:
         should select from ["all", "sentences", "multiple_choice"].
         """
         # print("Generating questions...\n")
-        ## TODO::can't batch across inputs as we can't even get one example through
+        ## can't completely batch across inputs (not enough memory)
         qg_inputs, qg_answers = self.generate_qg_inputs(article, answer_style)
         ## new with batching
         generated_questions = self.generate_questions_from_inputs_BATCH(qg_inputs, isColab)
         # generated_questions = self.generate_questions_from_inputs(qg_inputs)
         message = "{} questions doesn't match {} answers".format(len(generated_questions), len(qg_answers))
         assert len(generated_questions) == len(qg_answers), message
-        ## the evaluator is what shrinks the question count down...
+        ## the evaluator...it's what shrinks the question count
         if use_evaluator:
             # print("Evaluating QA pairs...\n")
             encoded_qa_pairs = self.qa_evaluator.encode_qa_pairs(generated_questions, qg_answers)
+            # encoded_qa_pairs = self.qa_evaluator.encode_qa_pairs_BATCH(generated_questions, qg_answers)
             scores = self.qa_evaluator.get_scores(encoded_qa_pairs)
             if num_questions:
                 qa_list = self._get_ranked_qa_pairs(generated_questions, qg_answers, scores, num_questions)
@@ -127,6 +128,9 @@ class QuestionGenerator:
         a question sentence. The generated question is decoded and then returned.
         """
         encoded_input = self._encode_qg_input_BATCH(qg_input)
+        ## adjust this to output a fixed set
+        ### there are a lot of options to set here (https://huggingface.co/docs/transformers/main_classes/text_generation)
+        #### adjusting this will be key
         output = self.qg_model.generate(input_ids=encoded_input["input_ids"], max_length=20, num_beams=4, temperature=2)
         questions = self.qg_tokenizer.batch_decode(output, skip_special_tokens=True)
         return questions
@@ -292,6 +296,7 @@ class QuestionGenerator:
         return qa_list
 
 
+## TODO::there are batching opportunities here
 class QAEvaluator:
     """Wrapper for a transformer model which evaluates the quality of question-answer pairs.
     Given a QA pair, the model will generate a score. Scores can be used to rank and filter
@@ -307,6 +312,7 @@ class QAEvaluator:
         self.qae_model.to(self.device)
         self.qae_model.eval()
 
+    ## here is a batch benefit...may have to balance GPU memory between this model and the QG
     def encode_qa_pairs(self, questions: List[str], answers: List[str]) -> List[torch.tensor]:
         """Takes a list of questions and a list of answers and encodes them as a list of tensors."""
         encoded_pairs = []
@@ -315,13 +321,39 @@ class QAEvaluator:
             encoded_pairs.append(encoded_qa.to(self.device))
         return encoded_pairs
 
+    ########## NEW FUNCTIONS ##########
+    def encode_qa_pairs_BATCH(self, questions: List[str], answers: List[str]) -> List[torch.tensor]:
+        """Takes a list of questions and a list of answers and encodes them as a list of tensors."""
+        encoded_pairs = []
+        ## need to concatnate together better here...see below item
+        encoded_qa = self._encode_qa_BATCH(questions, answers)
+        encoded_pairs.append(encoded_qa.to(self.device))
+        return encoded_pairs
+
+    def _encode_qa_BATCH(self, question: List[str], answer: List[str]) -> torch.tensor:
+        """Concatenates a question and answer, and then tokenizes them. Returns a tensor of
+        input ids corresponding to indices in the vocab.
+        """
+        ## this evaluates multiple choice answers
+        ## TODO::figure out a way to do this faster
+        if type(answer) is list:
+            for a in answer:
+                if a["correct"]:
+                    correct_answer = a["answer"]
+        else:
+            correct_answer = answer
+        return self.qae_tokenizer(
+            text=question, text_pair=answer,
+            padding="max_length", max_length=self.SEQ_LENGTH,
+            truncation=True, return_tensors="pt",
+        )
+    ########## END NEW FUNCTIONS ##########
+
     def get_scores(self, encoded_qa_pairs: List[torch.tensor]) -> List[float]:
         """Generates scores for a list of encoded QA pairs."""
         scores = {}
-
         for i in range(len(encoded_qa_pairs)):
             scores[i] = self._evaluate_qa(encoded_qa_pairs[i])
-
         return [
             k for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)
         ]
@@ -336,7 +368,6 @@ class QAEvaluator:
                     correct_answer = a["answer"]
         else:
             correct_answer = answer
-
         return self.qae_tokenizer(
             text=question,
             text_pair=correct_answer,
@@ -354,18 +385,13 @@ class QAEvaluator:
 
 def print_qa(qa_list: List[Mapping[str, str]], show_answers: bool = True) -> None:
     """Formats and prints a list of generated questions and answers."""
-
     for i in range(len(qa_list)):
         # wider space for 2 digit q nums
         space = " " * int(np.where(i < 9, 3, 4))
-
         print(f"{i + 1}) Q: {qa_list[i]['question']}")
-
         answer = qa_list[i]["answer"]
-
         # print a list of multiple choice answers
         if type(answer) is list:
-
             if show_answers:
                 print(
                     f"{space}A: 1. {answer[0]['answer']} "
@@ -376,14 +402,11 @@ def print_qa(qa_list: List[Mapping[str, str]], show_answers: bool = True) -> Non
                         f"{space + '   '}{j + 1}. {answer[j]['answer']} "
                         f"{np.where(answer[j]['correct']==True,'(correct)', '')}"
                     )
-
             else:
                 print(f"{space}A: 1. {answer[0]['answer']}")
                 for j in range(1, len(answer)):
                     print(f"{space + '   '}{j + 1}. {answer[j]['answer']}")
-
             print("")
-
         # print full sentence answers
         else:
             if show_answers:
