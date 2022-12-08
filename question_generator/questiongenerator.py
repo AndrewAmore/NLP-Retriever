@@ -97,7 +97,7 @@ class QuestionGenerator:
             generated_questions.append(question)
         return generated_questions
 
-################## new batching code ###############################
+################## new batching code ##################
     def chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
@@ -107,10 +107,11 @@ class QuestionGenerator:
         """Given a list of concatenated answers and contexts generates a list of questions with the form:
         "answer_token <answer text> context_token <context text>".
         """
-        # this fills up GPU memory locally with just 8 chunks...set as hyperparemter based on env as Colab has 12 GB
+        ## this fills up GPU memory locally with just 8 chunks...set based on env as Colab has 12 GB
+        ## note this will become less of a factor if less passages are concatenated together
         obs_per_chunk = 7
         if isColab:
-            obs_per_chunk = 36
+            obs_per_chunk = 39
         generated_questions = []
         ## split the qg_inputs into mini-batches
         chunked = list(self.chunks(qg_inputs, obs_per_chunk))
@@ -135,9 +136,9 @@ class QuestionGenerator:
         return self.qg_tokenizer(qg_input, padding='max_length', max_length=self.SEQ_LENGTH, truncation=True,
             return_tensors="pt").to(self.device)
 
-##################
+################## END NEW FUNCTIONS ##################
 
-
+    ## currently looking characters to split sentence...lots of passages have abbreviations Jim H. Smith for example
     def _split_text(self, text: str) -> List[str]:
         """Splits the text into sentences, and attempts to split or truncate long sentences."""
         MAX_SENTENCE_LEN = 128
