@@ -15,6 +15,6 @@ This repository was used to generate the paper XX.
 ## Acknowledgements
 
 This project was completed as part of COMPSCI 572 (Natural Language Processsing) at Duke, taught by Professor Bhuwan Dhingra. 
-I partnered with a classmate, Jose Pilego San Martin, on this project.
+I partnered with a classmate, [Jose Pilego San Martin](https://github.com/josePliego), on this project.
 
 
