@@ -31,10 +31,10 @@ if __name__ == '__main__':
         # test methods
         print("testing initiated")
         helpers.process_batches(isColab=isColab, project_id=project_id, qg=qg, num_questions=25,
-                        target_table="testing.nq_train_documents_3_qg_25_beam",
-                        lookup_tbl="testing.stg_nq_train_3_batch_loading",
-                        num_batches=1, batch_size=5,
-                        use_qa_evaluator=True, doDelete=False)
+                                target_table="testing.test_corpus_1_qg_25_beam",
+                                lookup_tbl="testing.stg_test_corpus_1_batch_loading",
+                                num_batches=200, batch_size=20,
+                                use_qa_evaluator=True, doDelete=True)
 
 
 
