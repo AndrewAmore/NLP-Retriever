@@ -382,32 +382,3 @@ class QAEvaluator:
         """Takes an encoded QA pair and returns a score."""
         output = self.qae_model(**encoded_qa_pair)
         return output[0][0][1]
-
-def print_qa(qa_list: List[Mapping[str, str]], show_answers: bool = True) -> None:
-    """Formats and prints a list of generated questions and answers."""
-    for i in range(len(qa_list)):
-        # wider space for 2 digit q nums
-        space = " " * int(np.where(i < 9, 3, 4))
-        print(f"{i + 1}) Q: {qa_list[i]['question']}")
-        answer = qa_list[i]["answer"]
-        # print a list of multiple choice answers
-        if type(answer) is list:
-            if show_answers:
-                print(
-                    f"{space}A: 1. {answer[0]['answer']} "
-                    f"{np.where(answer[0]['correct'], '(correct)', '')}"
-                )
-                for j in range(1, len(answer)):
-                    print(
-                        f"{space + '   '}{j + 1}. {answer[j]['answer']} "
-                        f"{np.where(answer[j]['correct']==True,'(correct)', '')}"
-                    )
-            else:
-                print(f"{space}A: 1. {answer[0]['answer']}")
-                for j in range(1, len(answer)):
-                    print(f"{space + '   '}{j + 1}. {answer[j]['answer']}")
-            print("")
-        # print full sentence answers
-        else:
-            if show_answers:
-                print(f"{space}A: {answer}\n")
