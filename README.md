@@ -7,7 +7,7 @@ This repository contains code used to generate the paper `paper_name_here.pdf`.
 ## Description of Contents
 - `./colab_notebooks/`: Directory containing Google Colab notebooks used in the analysis
 - `./database_info/`: Directory containing processing information for raw passage documents
-- `./question_generator/`: Model declaration for the question generator with an adjusted regex parser. Modified from an initial repository by [Adam Montgomerie](https://github.com/AMontgomerie/question_generator)
+- `./question_generator/`: Model declaration for the modified question generator adapted from an initial repository by [Adam Montgomerie](https://github.com/AMontgomerie/question_generator)
 - `helpers.py`: Code containing function declarations used in `main.py`
 - `main.py`: Entry point for question generation on a local GPU for passages stored in BigQuery
 
