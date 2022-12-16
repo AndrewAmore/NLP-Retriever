@@ -1,8 +1,21 @@
 # NLP-Retriever
-This repository contains code used to generate the paper `paper_name_here.pdf`. 
+This repository contains code used to generate the paper `Amore_Pliego_CS572_01_F22.pdf`. 
 
 ## Paper Abstract
-
+Modern Question Answering (QA) systems consist of two components: readers
+and retrievers. Retrievers reduce the passage search space for answer extraction
+and limit the overall accuracy of QA methods. Conventional retrievers consume
+large amounts of resources, reducing their viability to large corporations or well
+funded institutions. In addition, some retrieval methods are prone to overfitting,
+requiring an expensive retraining process to understand new document sources.
+In this paper, we outline a methodology for building information retrieval systems
+on a limited budget and perform feature enhancement using transfer learning.
+Through several ablation studies we demonstrate that existing DPR approaches
+are very sensitive to small changes in the problem domain, and introduce an
+approach to potentially improve generalizability which outperforms the existing
+DPR framework under one ablation. We also highlight a potential data quality
+issue from a well-cited paper, which may call into question published accuracy
+metrics and warrant additional review.
 
 ## Description of Contents
 - `./colab_notebooks/`: Directory containing Google Colab notebooks used in the analysis
