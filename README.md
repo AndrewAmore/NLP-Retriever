@@ -1,5 +1,5 @@
 # NLP-Retriever
-This repository contains code used to generate the paper `Amore_Pliego_CS572_01_F22.pdf`. 
+This repository contains code used to generate the paper [Amore_Pliego_CS572_01_F22.pdf](Amore_Pliego_CS572_01_F22.pdf). 
 
 ## Paper Abstract
 Modern Question Answering (QA) systems consist of two components: readers
